@@ -1,4 +1,3 @@
-
 name: CI
 
 on:
@@ -15,49 +14,51 @@ jobs:
   backend-tests:
     name: Backend — PHP Unit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend/onlinebookstore
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v4
+      - uses: shivammathur/setup-php@v2       
         with:
-          php-version: '8.1'
+          php-version: '8.2'
           extensions: mbstring, bcmath, xml, pdo, pdo_mysql
+          coverage: xdebug                      
 
-      - name: Cache Composer
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('backend/onlinebookstore/composer.lock') }}
+          restore-keys: |                         # fix: added fallback
+            ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress --no-suggest --optimize-autoloader
+        run: composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
+        # fix: removed --no-suggest (deprecated in Composer 2)
 
       - name: Run PHP unit tests
         run: |
-          # If your tests need an environment file, copy it from example (adjust as needed)
           if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env || true; fi
-          vendor/bin/phpunit --coverage-text --colors=never || true
+          vendor/bin/phpunit --coverage-text --colors=never
+          # fix: removed '|| true' — failures now correctly break the build
 
   frontend-build:
     name: Frontend — Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend/cozy-bookstore-main
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: frontend/cozy-bookstore-main/package-lock.json  # fix
 
       - name: Install dependencies
         run: npm ci
@@ -65,9 +66,7 @@ jobs:
       - name: Run frontend tests
         env:
           CI: true
-        run: |
-          # Adjust this if your project uses a different test command name
-          if npm run test --silent; then echo "Tests passed"; else echo "Some tests failed"; fi
+        run: npm test                            
 
       - name: Build frontend
         run: npm run build
@@ -77,6 +76,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: dist
-
-
+          path: frontend/cozy-bookstore-main/dist  # fix: full path, not relative 'dist'

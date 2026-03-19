@@ -38,6 +38,8 @@ const Browse = () => {
       );
     }
 
+    // some edits
+
     switch (sortBy) {
       case "price-low":
         return [...result].sort((a, b) => a.price - b.price);
