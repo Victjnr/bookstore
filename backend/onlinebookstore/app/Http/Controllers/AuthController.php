@@ -35,18 +35,15 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
-            // Generate token
-            $token = $user->createToken('auth_token')->plainTextToken;
-
             return response()->json([
                 'success' => true,
-                'message' => 'User registered successfully',
+                'message' => 'User registered successfully. Please log in with your credentials.',
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'role' => $user->role ?? 'user',
                 ],
-                'token' => $token,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -57,7 +54,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user
+     * Login user (session-based)
      */
     public function login(Request $request)
     {
@@ -83,8 +80,8 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Generate token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Authenticate user and create session
+        auth()->login($user);
 
         return response()->json([
             'success' => true,
@@ -93,8 +90,8 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'role' => $user->role ?? 'user',
             ],
-            'token' => $token,
         ]);
     }
 
@@ -109,16 +106,45 @@ class AuthController extends Controller
                 'id' => $request->user()->id,
                 'name' => $request->user()->name,
                 'email' => $request->user()->email,
+                'role' => $request->user()->role ?? 'user',
             ],
         ]);
     }
 
     /**
-     * Logout user
+     * Check if user is authenticated (doesn't require auth middleware)
+     * Returns user if authenticated, null if not
+     */
+    public function check(Request $request)
+    {
+        if ($request->user()) {
+            return response()->json([
+                'success' => true,
+                'authenticated' => true,
+                'user' => [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role' => $request->user()->role ?? 'user',
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'authenticated' => false,
+            'user' => null,
+        ]);
+    }
+
+    /**
+     * Logout user (session-based)
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        auth()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'success' => true,
@@ -127,20 +153,20 @@ class AuthController extends Controller
     }
 
     /**
-     * Refresh token
+     * Refresh session
      */
     public function refresh(Request $request)
     {
-        // Delete old token
-        $request->user()->currentAccessToken()->delete();
-
-        // Create new token
-        $token = $request->user()->createToken('auth_token')->plainTextToken;
-
+        // Session is automatically maintained, no action needed
         return response()->json([
             'success' => true,
-            'message' => 'Token refreshed',
-            'token' => $token,
+            'message' => 'Session refreshed',
+            'user' => [
+                'id' => $request->user()->id,
+                'name' => $request->user()->name,
+                'email' => $request->user()->email,
+                'role' => $request->user()->role ?? 'user',
+            ],
         ]);
     }
 }

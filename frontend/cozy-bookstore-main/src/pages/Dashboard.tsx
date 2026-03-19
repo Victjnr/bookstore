@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   ShoppingCart,
@@ -7,6 +8,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Star,
+  AlertCircle,
+  Loader,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,28 +22,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { dashboardAPI } from "@/services/api";
 
-const stats = [
-  { label: "Total Books", value: "2,847", change: "+12%", up: true, icon: BookOpen },
-  { label: "Active Orders", value: "184", change: "+8%", up: true, icon: ShoppingCart },
-  { label: "Customers", value: "12,493", change: "+23%", up: true, icon: Users },
-  { label: "Revenue", value: "$48,295", change: "-3%", up: false, icon: TrendingUp },
-];
+interface Stats {
+  total_books: number;
+  active_orders: number;
+  total_customers: number;
+  total_revenue: string;
+}
 
-const recentOrders = [
-  { id: "ORD-001", customer: "Emily Brontë", book: "The Great Gatsby", amount: "$14.99", status: "paid" },
-  { id: "ORD-002", customer: "James Joyce", book: "1984", amount: "$12.49", status: "shipped" },
-  { id: "ORD-003", customer: "Virginia Woolf", book: "To Kill a Mockingbird", amount: "$11.99", status: "pending" },
-  { id: "ORD-004", customer: "Mark Twain", book: "Pride and Prejudice", amount: "$9.99", status: "paid" },
-  { id: "ORD-005", customer: "Oscar Wilde", book: "The Catcher in the Rye", amount: "$13.49", status: "cancelled" },
-];
+interface Order {
+  id: string;
+  customer: string;
+  book: string;
+  amount: string;
+  status: string;
+}
 
-const topBooks = [
-  { title: "The Great Gatsby", author: "F. Scott Fitzgerald", rating: 4.8, sales: 342 },
-  { title: "1984", author: "George Orwell", rating: 4.7, sales: 298 },
-  { title: "To Kill a Mockingbird", author: "Harper Lee", rating: 4.9, sales: 276 },
-  { title: "Pride and Prejudice", author: "Jane Austen", rating: 4.6, sales: 254 },
-];
+interface TopSeller {
+  title: string;
+  author: string;
+  rating: number;
+  sales: number;
+}
 
 const statusColor: Record<string, string> = {
   paid: "bg-primary/10 text-primary border-primary/20",
@@ -59,11 +63,91 @@ const item = {
 };
 
 const Dashboard = () => {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [topSellers, setTopSellers] = useState<TopSeller[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await dashboardAPI.getDashboardData();
+        
+        if (response.success) {
+          setStats(response.data.stats);
+          setRecentOrders(response.data.recent_orders);
+          setTopSellers(response.data.top_sellers);
+        } else {
+          setError("Failed to load dashboard data");
+        }
+      } catch (err) {
+        console.error("Dashboard error:", err);
+        setError("Error loading dashboard metrics");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen gap-2 text-destructive">
+        <AlertCircle className="h-5 w-5" />
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (loading || !stats) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Create stats array with dynamic data
+  const statsArray = [
+    {
+      label: "Total Books",
+      value: stats.total_books.toLocaleString(),
+      change: "+12%",
+      up: true,
+      icon: BookOpen,
+    },
+    {
+      label: "Active Orders",
+      value: stats.active_orders.toLocaleString(),
+      change: "+8%",
+      up: true,
+      icon: ShoppingCart,
+    },
+    {
+      label: "Customers",
+      value: stats.total_customers.toLocaleString(),
+      change: "+23%",
+      up: true,
+      icon: Users,
+    },
+    {
+      label: "Revenue",
+      value: `$${stats.total_revenue}`,
+      change: "-3%",
+      up: false,
+      icon: TrendingUp,
+    },
+  ];
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
+        {statsArray.map((stat) => (
           <motion.div key={stat.label} variants={item}>
             <Card>
               <CardContent className="p-5">
@@ -103,32 +187,36 @@ const Dashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead className="hidden sm:table-cell">Customer</TableHead>
-                    <TableHead className="hidden md:table-cell">Book</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{order.customer}</TableCell>
-                      <TableCell className="hidden md:table-cell">{order.book}</TableCell>
-                      <TableCell>{order.amount}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={statusColor[order.status]}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
+              {recentOrders.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead className="hidden sm:table-cell">Customer</TableHead>
+                      <TableHead className="hidden md:table-cell">Book</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recentOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{order.customer}</TableCell>
+                        <TableCell className="hidden md:table-cell">{order.book}</TableCell>
+                        <TableCell>{order.amount}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={statusColor[order.status]}>
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-center text-muted-foreground py-6">No orders yet</p>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -141,25 +229,29 @@ const Dashboard = () => {
               <CardDescription>Best performing books this month</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {topBooks.map((book, index) => (
-                <div
-                  key={book.title}
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <span className="text-lg font-bold font-serif text-muted-foreground w-6">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{book.title}</p>
-                    <p className="text-sm text-muted-foreground">{book.author}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Star className="h-3 w-3 text-accent fill-accent" />
-                      <span className="text-xs text-muted-foreground">{book.rating}</span>
-                      <span className="text-xs text-muted-foreground">· {book.sales} sold</span>
+              {topSellers.length > 0 ? (
+                topSellers.map((book, index) => (
+                  <div
+                    key={book.title}
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="text-lg font-bold font-serif text-muted-foreground w-6">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">{book.title}</p>
+                      <p className="text-sm text-muted-foreground">{book.author}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Star className="h-3 w-3 text-accent fill-accent" />
+                        <span className="text-xs text-muted-foreground">{book.rating}</span>
+                        <span className="text-xs text-muted-foreground">· {book.sales} sold</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-6">No sales yet</p>
+              )}
             </CardContent>
           </Card>
         </motion.div>

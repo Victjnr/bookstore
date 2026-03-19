@@ -52,7 +52,7 @@ export function AppSidebar() {
           <BookOpen className="w-7 h-7 text-sidebar-primary shrink-0" />
           {!collapsed && (
             <span className="text-lg font-serif text-sidebar-foreground font-semibold truncate">
-              Book Haven
+              Rail of Hope
             </span>
           )}
         </div>

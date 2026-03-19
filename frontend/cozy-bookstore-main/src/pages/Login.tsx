@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { authAPI } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,13 +25,18 @@ const Login = () => {
     try {
       const response = await authAPI.login({ email, password });
       
-      if (response.success && response.token) {
-        // Store token and user data
-        localStorage.setItem("authToken", response.token);
-        localStorage.setItem("user", JSON.stringify(response.user));
+      if (response.success && response.user) {
+        // Session is established automatically via HTTP-only cookie
+        // Just update AuthContext with user data
+        login(response.user);
         
-        // Redirect to store
-        navigate("/store");
+        // Redirect based on role (backend should return role or is_admin flag)
+        const role = (response.user as any).role ?? ((response.user as any).is_admin ? "admin" : "user");
+        if (role === "admin" || role === "superadmin") {
+          navigate("/dashboard");
+        } else {
+          navigate("/store");
+        }
       } else {
         setError(response.message || "Login failed");
       }

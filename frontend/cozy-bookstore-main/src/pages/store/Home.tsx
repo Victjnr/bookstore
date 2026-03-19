@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Truck, ShieldCheck, Headphones } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Headphones, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookCard } from "@/components/store/BookCard";
-import { books } from "@/data/books";
+import { useBooksFromAPI } from "@/hooks/useBooksFromAPI";
+import { useState, useEffect } from "react";
 
 const features = [
   { icon: Truck, title: "Free Shipping", desc: "On orders over $35" },
@@ -22,8 +23,19 @@ const item = {
 };
 
 const StoreHome = () => {
-  const featured = books.slice(0, 4);
-  const bestsellers = books.filter((b) => b.rating >= 4.7).slice(0, 4);
+  const { books, loading, error } = useBooksFromAPI();
+  const [featured, setFeatured] = useState<typeof books>([]);
+  const [bestsellers, setBestsellers] = useState<typeof books>([]);
+
+  useEffect(() => {
+    if (books && books.length > 0) {
+      // Get first 4 books as featured
+      setFeatured(books.slice(0, 4));
+      // Get books with highest rating as bestsellers
+      const sorted = [...books].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      setBestsellers(sorted.slice(0, 4));
+    }
+  }, [books]);
 
   return (
     <div>
@@ -98,18 +110,36 @@ const StoreHome = () => {
             </Button>
           </Link>
         </div>
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
-        >
-          {featured.map((book) => (
-            <motion.div key={book.id} variants={item}>
-              <BookCard book={book} />
-            </motion.div>
-          ))}
-        </motion.div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-muted animate-pulse rounded-lg h-80" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive">{error}</p>
+          </div>
+        ) : featured.length === 0 ? (
+          <div className="text-center py-12">
+            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No books available yet</p>
+          </div>
+        ) : (
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
+          >
+            {featured.map((book) => (
+              <motion.div key={book.id} variants={item}>
+                <BookCard book={book} />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </section>
 
       {/* Banner */}

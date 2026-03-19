@@ -52,9 +52,9 @@ const Cart = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
-          {items.map(({ book, quantity }) => (
+          {items.map((item) => (
             <motion.div
-              key={book.id}
+              key={item.id}
               layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -63,22 +63,22 @@ const Cart = () => {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex gap-4">
-                    <Link to={`/store/book/${book.id}`} className="shrink-0">
+                    <Link to={`/store/book/${item.book_id}`} className="shrink-0">
                       <img
-                        src={book.cover}
-                        alt={book.title}
+                        src={item.book.cover}
+                        alt={item.book.title}
                         className="w-20 h-28 object-cover rounded"
                       />
                     </Link>
                     <div className="flex-1 min-w-0">
-                      <Link to={`/store/book/${book.id}`}>
+                      <Link to={`/store/book/${item.book_id}`}>
                         <h3 className="font-serif font-semibold text-foreground hover:text-primary transition-colors">
-                          {book.title}
+                          {item.book.title}
                         </h3>
                       </Link>
-                      <p className="text-sm text-muted-foreground">{book.author}</p>
+                      <p className="text-sm text-muted-foreground">{item.book.author}</p>
                       <p className="text-lg font-bold text-foreground mt-2">
-                        ${book.price.toFixed(2)}
+                        ${item.book.price.toFixed(2)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end justify-between">
@@ -86,7 +86,7 @@ const Cart = () => {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeFromCart(book.id)}
+                        onClick={() => removeFromCart(item.book_id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -95,16 +95,16 @@ const Cart = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => updateQuantity(book.id, quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="text-sm font-medium w-6 text-center">{quantity}</span>
+                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => updateQuantity(book.id, quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>

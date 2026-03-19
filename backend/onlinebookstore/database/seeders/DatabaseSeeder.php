@@ -15,11 +15,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed books first
+        $this->call([
+            BookSeeder::class,
+        ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Create test users if they don't exist
+        if (User::where('email', 'test@example.com')->doesntExist()) {
+            User::create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+                'password' => bcrypt('password'),
+            ]);
+        }
+
+        // Create additional test users
+        User::factory(5)->create();
+
+        // Seed orders with order items
+        $this->call([
+            OrderSeeder::class,
         ]);
     }
 }

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookCard } from "@/components/store/BookCard";
-import { books, genres } from "@/data/books";
+import { genres } from "@/data/books";
+import { useBooksFromAPI } from "@/hooks/useBooksFromAPI";
 import { motion } from "framer-motion";
 
 const Browse = () => {
@@ -18,6 +19,8 @@ const Browse = () => {
   const [selectedGenre, setSelectedGenre] = useState(initialGenre);
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  
+  const { books, loading, error } = useBooksFromAPI();
 
   const filtered = useMemo(() => {
     let result = books;
@@ -47,7 +50,23 @@ const Browse = () => {
       default:
         return result;
     }
-  }, [query, selectedGenre, sortBy]);
+  }, [books, query, selectedGenre, sortBy]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-center">
+        <p className="text-muted-foreground">Loading books...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-center">
+        <p className="text-destructive">Error loading books: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { UserProfileDropdown } from "./UserProfileDropdown";
 import { useState } from "react";
 
 const navLinks = [
@@ -15,6 +17,7 @@ const navLinks = [
 
 export function StoreHeader() {
   const { totalItems } = useCart();
+  const { isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
@@ -57,11 +60,15 @@ export function StoreHeader() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <Link to="/login">
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <UserProfileDropdown />
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="icon" title="Login">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
             <Link to="/store/cart" className="relative">
               <Button variant="ghost" size="icon">
                 <ShoppingCart className="h-5 w-5" />

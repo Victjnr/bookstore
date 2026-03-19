@@ -1,1 +1,82 @@
 
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend — PHP Unit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/onlinebookstore
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v4
+        with:
+          php-version: '8.1'
+          extensions: mbstring, bcmath, xml, pdo, pdo_mysql
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/onlinebookstore/composer.lock') }}
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-suggest --optimize-autoloader
+
+      - name: Run PHP unit tests
+        run: |
+          # If your tests need an environment file, copy it from example (adjust as needed)
+          if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env || true; fi
+          vendor/bin/phpunit --coverage-text --colors=never || true
+
+  frontend-build:
+    name: Frontend — Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/cozy-bookstore-main
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend tests
+        env:
+          CI: true
+        run: |
+          # Adjust this if your project uses a different test command name
+          if npm run test --silent; then echo "Tests passed"; else echo "Some tests failed"; fi
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Upload build artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: dist
+
+

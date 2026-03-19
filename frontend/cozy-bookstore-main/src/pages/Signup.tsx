@@ -15,6 +15,7 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,13 +38,12 @@ const Signup = () => {
         password_confirmation: confirmPassword,
       });
 
-      if (response.success && response.token) {
-        // Store token and user data
-        localStorage.setItem("authToken", response.token);
-        localStorage.setItem("user", JSON.stringify(response.user));
-
-        // Redirect to store
-        navigate("/store");
+      if (response.success) {
+        setSuccess("Account created successfully! Redirecting to login...");
+        // Redirect to login page after 1.5 seconds
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
       } else {
         setError(response.message || "Signup failed");
       }
@@ -78,6 +78,11 @@ const Signup = () => {
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
+                {success}
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
